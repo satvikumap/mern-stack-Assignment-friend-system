@@ -67,6 +67,14 @@ This is a social networking platform that allows users to register, login, send 
 - MongoDB (Local or Cloud database)
 - Postman or any API testing tool to test routes
 
+<img width="1470" alt="Screenshot 2025-01-11 at 11 04 06 PM" src="https://github.com/user-attachments/assets/65899eb4-5d8f-4fe5-b3fe-3e921f68655c" />
+<img width="1462" alt="Screenshot 2025-01-11 at 11 03 37 PM" src="https://github.com/user-attachments/assets/26b60b30-d934-4086-913f-0da882129000" />
+<img width="1470" alt="Screenshot 2025-01-11 at 11 03 00 PM" src="https://github.com/user-attachments/assets/7820e84f-729c-48bc-9f92-83e07c730930" />
+<img width="1465" alt="Screenshot 2025-01-11 at 11 01 57 PM" src="https://github.com/user-attachments/assets/e2e7e07a-e7e0-4a79-986a-f99afbf46617" />
+
+
+<img width="1466" alt="Screenshot 2025-01-11 at 11 01 27 PM" src="https://github.com/user-attachments/assets/3a3567b2-9240-4219-95dd-e35f83980cbc" />
+
 
  
 
