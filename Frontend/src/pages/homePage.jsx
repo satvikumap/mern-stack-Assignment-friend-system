@@ -6,6 +6,7 @@ import SearchBox from '../components/SearchBox';
 import UserProfileLogo from '../components/UserProfileLogo';
 import FriendList from '../components/FriendList';
 import PendingRequests from '../components/PendingRequests'; // Component for pending friend requests
+import FriendRecommendations from '../components/FriendRecommendations'; // Import FriendRecommendations component
 
 const Home = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Home = () => {
   const [pendingRequests, setPendingRequests] = useState([]); // Pending requests
   const [username, setUsername] = useState(''); // Current user's username
   const [currentUserId, setCurrentUserId] = useState(''); // Current user's ID
-
+  const [recommendations, setRecommendations] = useState([]); 
   // Fetch all users, friends, and pending requests on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -29,10 +30,16 @@ const Home = () => {
         setUsername(profileResponse.data.username); // Set current user's username
         setCurrentUserId(profileResponse.data._id); // Set current user's ID
 
+        const recommendationsResponse = await api.get('/friend-recommendation/recommendations', {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        setRecommendations(recommendationsResponse.data.recommendations);
         // Fetch all users
         const usersResponse = await api.get('/user/', {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
+
+
 
         // Exclude the current user from the user list
         const filteredUserList = usersResponse.data.filter(user => user._id !== profileResponse.data._id);
@@ -49,6 +56,7 @@ const Home = () => {
         const incomingRequestsResponse = await api.get('/friend-request/requests', {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
+        
         setPendingRequests(incomingRequestsResponse.data || []); // Set pending requests
 
       } catch (error) {
@@ -187,6 +195,23 @@ const Home = () => {
           handleAcceptRequest={handleAcceptRequest}
           handleRejectRequest={handleRejectRequest}
         />
+
+      {recommendations.length > 0 ? (
+                  <FriendRecommendations
+                    recommendations={recommendations}
+                    handleSendRequest={handleSendRequest}
+                  />
+                ) : (
+                  <p className="text-red-500">
+                    Add interests to get personalized friend recommendations! 
+                    <button
+                      onClick={() => navigate(`/profile/update/${currentUserId}`)}
+                      className="text-blue-500"
+                    >
+                      Update Profile
+                    </button>
+                  </p>
+                )}
       </div>
 
       {/* Logout Button */}

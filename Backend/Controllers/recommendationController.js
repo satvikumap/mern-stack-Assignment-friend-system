@@ -1,67 +1,72 @@
 const User = require('../model/userSchema');
-const FriendRecommendation = require('../model/friendRecommendationSchema');
 
-// Get friend recommendations
-exports.getRecommendations = async (req, res) => {
-  try {
-    const recommendations = await FriendRecommendation.findOne({ user: req.user.id }).populate('recommendations.friend');
-    if (!recommendations) {
-      return res.status(404).json({ message: 'No recommendations found' });
-    }
-    res.json(recommendations.recommendations);
-  } catch (err) {
-    res.status(500).json({ message: 'Error fetching recommendations' });
-  }
+// Get mutual friends count
+const getMutualFriends = async (userId, targetUserId) => {
+  const user = await User.findById(userId).populate('friends');
+  const targetUser = await User.findById(targetUserId).populate('friends');
+
+  const userFriends = user.friends.map(friend => friend._id.toString());
+  const targetUserFriends = targetUser.friends.map(friend => friend._id.toString());
+
+  const mutualFriends = userFriends.filter(friendId =>
+    targetUserFriends.includes(friendId)
+  );
+  return mutualFriends.length;
 };
 
-// Generate friend recommendations (this can be based on mutual friends or interests)
-exports.generateRecommendations = async (req, res) => {
-  const userId = req.user.id;
+// Helper function to get common interests
+const getCommonInterests = (userInterests, targetUserInterests) => {
+  return userInterests.filter(interest => targetUserInterests.includes(interest)).length;
+};
 
+// Controller to fetch friend recommendations
+const getFriendRecommendations = async (req, res) => {
   try {
+    const userId = req.user.id; // assuming userId is stored in req.user after authentication
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
 
-    // Logic to generate recommendations
-    // Example: find mutual friends or common interests and suggest them
-    const allUsers = await User.find({ _id: { $ne: userId } });
+    // Step 1: Get all users except the current user
+    const users = await User.find({ _id: { $ne: userId } });
 
-    let recommendations = [];
+    // Step 2: Filter and score users based on mutual friends and common interests
+    const recommendations = await Promise.all(users.map(async (targetUser) => {
+      const mutualFriendsCount = await getMutualFriends(userId, targetUser._id);
+      const commonInterestsCount = getCommonInterests(user.interests, targetUser.interests);
 
-    allUsers.forEach((potentialFriend) => {
-      let mutualFriendsCount = 0;
-      let commonInterests = [];
-
-      // Check for mutual friends and common interests
-      user.friends.forEach((friendId) => {
-        if (potentialFriend.friends.includes(friendId)) {
-          mutualFriendsCount++;
-        }
-      });
-
-      commonInterests = user.interests.filter((interest) =>
-        potentialFriend.interests.includes(interest)
-      );
-
-      if (mutualFriendsCount > 0 || commonInterests.length > 0) {
-        recommendations.push({
-          friend: potentialFriend._id,
-          mutualFriends: mutualFriendsCount,
-          commonInterests: commonInterests,
-        });
+      // If mutual friends exist, prioritize them; otherwise, use common interests
+      let recommendationScore = 0;
+      
+      if (mutualFriendsCount > 0) {
+        // Combine mutual friends and common interests for a recommendation score
+        recommendationScore = mutualFriendsCount + commonInterestsCount;
+      } else if (commonInterestsCount > 0) {
+        // If no mutual friends, but there are common interests, use common interests
+        recommendationScore = commonInterestsCount;
       }
-    });
 
-    const recommendation = new FriendRecommendation({
-      user: userId,
-      recommendations,
-    });
+      // Only return the user if they have a recommendation score greater than 0
+      if (recommendationScore > 0) {
+        return {
+          user: targetUser,
+          mutualFriendsCount,
+          commonInterestsCount,
+          recommendationScore
+        };
+      }
+      return null; // If no mutual friends and no common interests, return null
+    }));
 
-    await recommendation.save();
-    res.json({ message: 'Recommendations generated' });
-  } catch (err) {
-    res.status(500).json({ message: 'Error generating recommendations' });
+    // Filter out null values (users without mutual friends or common interests)
+    const filteredRecommendations = recommendations.filter(recommendation => recommendation !== null);
+
+    // Step 3: Sort recommendations by the recommendation score (highest first)
+    filteredRecommendations.sort((a, b) => b.recommendationScore - a.recommendationScore);
+
+    // Step 4: Return the recommendations
+    res.status(200).json({ recommendations: filteredRecommendations });
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting friend recommendations', error });
   }
 };
+
+module.exports = { getFriendRecommendations };

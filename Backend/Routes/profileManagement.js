@@ -5,6 +5,8 @@ const {authenticate} = require('../middleware/auth')
 // Update user profile
 router.get('/:id',authenticate,updateUserProfile);
 
+router.put('/:id',authenticate,updateUserProfile);
+
 // Delete a user
 router.delete('/:id',authenticate, deleteUser);
 
